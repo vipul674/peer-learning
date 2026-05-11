@@ -1,98 +1,128 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Send, Search, Phone, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/useAuth";
 
-const Messages = () => {
-  const { user } = useAuth();
+interface Message {
+  id: number;
+  sender_id: string;
+  receiver_id: string;
+  message: string;
+  created_at: string;
+}
 
-  const [users, setUsers] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [text, setText] = useState("");
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
 
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+const Messages = ({ user }: any) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // 🔥 FETCH USERS (FIXED)
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (!user) return;
+  const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, name, email")
-        .order("created_at", { ascending: true });
+  const currentUserId = user?.id;
 
-      console.log("USERS:", data);
+  console.log("USER:", user);
+  console.log("CURRENT USER ID:", currentUserId);
 
-      if (!data) return;
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-      const filtered = data.filter((u) => u.id !== user.id);
-      setUsers(filtered);
-    };
-
-    fetchUsers();
-  }, [user]);
-
-  // 🔥 FETCH MESSAGES (FIXED QUERY)
-  useEffect(() => {
-    if (!selectedUser || !user) return;
-
-    const fetchMessages = async () => {
-      const { data } = await supabase
-         .from<any>("messages")
-        .select("*")
-        .or(
-          `and(sender_id.eq.${user.id},receiver_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},receiver_id.eq.${user.id})`
-        )
-        .order("created_at", { ascending: true });
-
-      setMessages(data || []);
-    };
-
-    fetchMessages();
-  }, [selectedUser, user]);
-
-  // 🔥 SEND MESSAGE
-  const sendMessage = async () => {
-    if (!text.trim() || !selectedUser || !user) return;
-
-    const newMsg = {
-      sender_id: user.id,
-      receiver_id: selectedUser.id,
-      content: text,
-      created_at: new Date().toISOString(),
-    };
-
-    // Optimistic UI
-    setMessages((prev) => [...prev, newMsg]);
-
-    await supabase.from<any>("messages").insert(newMsg);
-
-    setText("");
+  // auto scroll
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
   };
 
-  // 🔥 REALTIME (FIXED FILTER)
   useEffect(() => {
-    if (!user) return;
+    scrollToBottom();
+  }, [messages]);
+
+  // fetch all users
+  useEffect(() => {
+    if (!currentUserId) {
+      setLoading(false);
+      return;
+    }
+
+    const getUsers = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .neq("id", currentUserId);
+
+      console.log("USERS:", data);
+      console.log("USERS ERROR:", error);
+
+      if (!error && data) {
+        setUsers(data);
+
+        if (data.length > 0) {
+          setSelectedUser(data[0]);
+        }
+      }
+
+      setLoading(false);
+    };
+
+    getUsers();
+  }, [currentUserId]);
+
+  // fetch messages
+  const fetchMessages = async () => {
+    if (!selectedUser || !currentUserId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .or(
+        `and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUserId})`
+      )
+      .order("created_at", { ascending: true });
+
+    console.log("MESSAGES:", data);
+    console.log("MESSAGES ERROR:", error);
+
+    if (!error && data) {
+      setMessages(data);
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchMessages();
+
+    if (!selectedUser || !currentUserId) return;
 
     const channel = supabase
-      .channel("messages")
+      .channel("messages-realtime")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
         (payload) => {
-          const newMsg = payload.new;
+          const newMsg = payload.new as Message;
 
           if (
-            (newMsg.sender_id === user.id &&
-              newMsg.receiver_id === selectedUser?.id) ||
-            (newMsg.sender_id === selectedUser?.id &&
-              newMsg.receiver_id === user.id)
+            (newMsg.sender_id === currentUserId &&
+              newMsg.receiver_id === selectedUser.id) ||
+            (newMsg.sender_id === selectedUser.id &&
+              newMsg.receiver_id === currentUserId)
           ) {
-            setMessages((prev) => {
-              if (prev.find((m) => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
-            });
+            setMessages((prev) => [...prev, newMsg]);
           }
         }
       )
@@ -101,98 +131,183 @@ const Messages = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, selectedUser]);
+  }, [selectedUser, currentUserId]);
 
-  // 🔥 AUTO SCROLL
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // send message
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedUser) return;
+
+    const { error } = await supabase.from("messages").insert([
+      {
+        sender_id: currentUserId,
+        receiver_id: selectedUser.id,
+        message: newMessage,
+      },
+    ]);
+
+    console.log("SEND ERROR:", error);
+
+    setNewMessage("");
+  };
 
   return (
-    <div className="flex h-screen bg-emerald-950 text-emerald-100">
+    <div className="h-screen bg-[#07120d] text-white flex overflow-hidden">
+      {/* SIDEBAR */}
+      <div className="w-[320px] border-r border-white/10 bg-white/5 backdrop-blur-xl p-4 hidden md:flex flex-col">
+        {/* SEARCH */}
+        <div className="flex items-center bg-white/10 rounded-2xl px-4 py-3 mb-6">
+          <Search size={18} className="text-gray-400" />
 
-      {/* 👥 USERS */}
-      <div className="w-1/3 border-r border-white/10 p-4">
-        <h2 className="font-semibold mb-4 text-lg">Users</h2>
+          <input
+            type="text"
+            placeholder="Search chats..."
+            className="bg-transparent outline-none ml-3 w-full text-sm"
+          />
+        </div>
 
-        {users.length === 0 && (
-          <p className="text-sm text-emerald-300/60">No users found</p>
-        )}
+        {/* USERS */}
+        <div className="flex flex-col gap-3 overflow-y-auto">
+          {users.map((user) => (
+            <div
+              key={user.id}
+              onClick={() => setSelectedUser(user)}
+              className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border ${
+                selectedUser?.id === user.id
+                  ? "bg-green-500/20 border-green-500 shadow-lg shadow-green-500/20"
+                  : "bg-white/5 border-transparent hover:bg-white/10"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-400 to-emerald-600 flex items-center justify-center font-bold">
+                    {user.name?.charAt(0).toUpperCase()}
+                  </div>
 
-        {users.map((u) => (
-          <div
-            key={u.id}
-            onClick={() => setSelectedUser(u)}
-            className={`p-3 rounded-lg cursor-pointer mb-2 transition ${
-              selectedUser?.id === u.id
-                ? "bg-green-500/20"
-                : "hover:bg-white/5"
-            }`}
-          >
-            <p className="font-medium">{u.name || "User"}</p>
-            <p className="text-xs text-emerald-300/60">{u.email}</p>
-          </div>
-        ))}
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border border-black"></div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold">{user.name}</h3>
+
+                  <p className="text-xs text-green-400">Online</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* 💬 CHAT */}
-      <div className="flex-1 flex flex-col p-4">
+      {/* CHAT AREA */}
+      <div className="flex-1 flex flex-col">
+        {/* TOP BAR */}
+        <div className="h-20 border-b border-white/10 bg-white/5 backdrop-blur-xl px-6 flex items-center justify-between">
+          {selectedUser && (
+            <>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-400 to-emerald-600 flex items-center justify-center font-bold">
+                    {selectedUser.name?.charAt(0).toUpperCase()}
+                  </div>
 
-        {selectedUser ? (
-          <>
-            <h2 className="font-semibold mb-3 text-lg">
-              Chat with {selectedUser.name || selectedUser.email}
-            </h2>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border border-black"></div>
+                </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto space-y-2 mb-3 pr-2">
+                <div>
+                  <h2 className="font-semibold text-lg">
+                    {selectedUser.name}
+                  </h2>
 
-              {messages.map((m, i) => (
+                  <p className="text-sm text-green-400">Online</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button className="p-3 rounded-xl bg-white/10 hover:bg-white/20 transition">
+                  <Phone size={18} />
+                </button>
+
+                <button className="p-3 rounded-xl bg-white/10 hover:bg-white/20 transition">
+                  <Video size={18} />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* MESSAGES */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+          {loading ? (
+            <div className="space-y-4">
+              <div className="h-14 w-52 rounded-2xl bg-white/10 animate-pulse"></div>
+              <div className="h-14 w-72 rounded-2xl bg-white/10 animate-pulse ml-auto"></div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              No messages yet
+            </div>
+          ) : (
+            messages.map((msg) => {
+              const isSender = msg.sender_id === currentUserId;
+
+              return (
                 <div
-                  key={i}
+                  key={msg.id}
                   className={`flex ${
-                    m.sender_id === user?.id
-                      ? "justify-end"
-                      : "justify-start"
+                    isSender ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div
-                    className={`px-3 py-2 rounded-lg max-w-xs ${
-                      m.sender_id === user?.id
-                        ? "bg-green-500 text-black"
-                        : "bg-white/10"
+                    className={`max-w-[70%] px-5 py-3 rounded-3xl shadow-lg transition-all duration-300 ${
+                      isSender
+                        ? "bg-green-500 text-black rounded-br-md"
+                        : "bg-white/10 backdrop-blur-lg rounded-bl-md"
                     }`}
                   >
-                    {m.content}
+                    <p className="text-sm">{msg.message}</p>
+
+                    <p
+                      className={`text-[10px] mt-2 ${
+                        isSender ? "text-black/60" : "text-gray-400"
+                      }`}
+                    >
+                      {new Date(msg.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
                   </div>
                 </div>
-              ))}
+              );
+            })
+          )}
 
-              <div ref={bottomRef} />
-            </div>
+          <div ref={messagesEndRef}></div>
+        </div>
 
-            {/* Input */}
-            <div className="flex gap-2">
-              <input
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                className="flex-1 p-2 rounded bg-white/5 border border-white/10 outline-none"
-                placeholder="Type message..."
-              />
-              <button
-                onClick={sendMessage}
-                className="bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded"
-              >
-                Send
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-1 items-center justify-center text-emerald-300/60">
-            Select a user to start chatting
+        {/* INPUT */}
+        <div className="p-5 border-t border-white/10 bg-white/5 backdrop-blur-xl">
+          <div className="flex items-center gap-3 bg-white/10 rounded-2xl p-3">
+            <input
+              type="text"
+              placeholder="Type a message..."
+              className="flex-1 bg-transparent outline-none text-sm px-2"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  sendMessage();
+                }
+              }}
+            />
+
+            <button
+              onClick={sendMessage}
+              className="bg-green-500 hover:bg-green-400 transition-all duration-300 p-3 rounded-xl shadow-lg shadow-green-500/30"
+            >
+              <Send size={18} className="text-black" />
+            </button>
           </div>
-        )}
-
+        </div>
       </div>
     </div>
   );

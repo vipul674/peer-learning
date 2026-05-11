@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
@@ -28,188 +28,243 @@ import Admin from "./pages/Admin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AIPage from "./pages/aipage";
+import FloatingAI from "./components/FloatingAI";
 
 import { supabase } from "./lib/supabase";
 
 const queryClient = new QueryClient();
 
 const WithNav = ({ children }: { children: React.ReactNode }) => (
-<> <Navbar />
-{children}
-</>
+  <>
+    <Navbar />
+    {children}
+  </>
 );
 
 function App() {
 
-// ✨ Sparkle Effect (FIXED)
-useEffect(() => {
-const container = document.getElementById("sparkle-container");
-if (!container) return;
+  // GLOBAL USER STATE
+  const [user, setUser] = useState<any>(null);
 
-const createSparkle = (x: number, y: number) => {
-  const sparkle = document.createElement("div");
-  sparkle.className = "sparkle";
-  sparkle.style.left = x + "px";
-  sparkle.style.top = y + "px";
-  container.appendChild(sparkle);
+  // FETCH USER ONLY ONCE
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  setTimeout(() => {
-    sparkle.remove();
-  }, 800);
-};
+      setUser(user);
+    };
 
-const handleMouseMove = (e: MouseEvent) => {
-  for (let i = 0; i < 2; i++) {
-    createSparkle(
-      e.clientX + Math.random() * 10 - 5,
-      e.clientY + Math.random() * 10 - 5
-    );
-  }
-};
+    getUser();
+  }, []);
 
-window.addEventListener("mousemove", handleMouseMove);
+  // ✨ Sparkle Effect
+  useEffect(() => {
 
-return () => {
-  window.removeEventListener("mousemove", handleMouseMove);
-};
+    const container = document.getElementById("sparkle-container");
 
+    if (!container) return;
 
-}, []);
+    const createSparkle = (x: number, y: number) => {
 
-// 🔍 Supabase test (optional)
-useEffect(() => {
-const test = async () => {
-const { data, error } = await supabase.from("profiles").select("*");
-console.log("DATA:", data);
-console.log("ERROR:", error);
-};
-test();
-}, []);
+      const sparkle = document.createElement("div");
 
-return ( <QueryClientProvider client={queryClient}> <TooltipProvider> <Toaster /> <Sonner />
+      sparkle.className = "sparkle";
 
+      sparkle.style.left = x + "px";
+      sparkle.style.top = y + "px";
 
-    <BrowserRouter>
-      <AuthProvider>
+      container.appendChild(sparkle);
 
-        <div id="sparkle-container"></div>
+      setTimeout(() => {
+        sparkle.remove();
+      }, 800);
+    };
 
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/ai" element={<AIPage />} />
+    const handleMouseMove = (e: MouseEvent) => {
 
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+      for (let i = 0; i < 2; i++) {
 
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <WithNav>
-                  <Dashboard />
-                </WithNav>
-              </ProtectedRoute>
-            }
-          />
+        createSparkle(
+          e.clientX + Math.random() * 10 - 5,
+          e.clientY + Math.random() * 10 - 5
+        );
+      }
+    };
 
-          <Route
-            path="/discover"
-            element={
-              <ProtectedRoute>
-                <WithNav>
-                  <Discover />
-                </WithNav>
-              </ProtectedRoute>
-            }
-          />
+    window.addEventListener("mousemove", handleMouseMove);
 
-          <Route
-            path="/sessions"
-            element={
-              <ProtectedRoute>
-                <WithNav>
-                  <Sessions />
-                </WithNav>
-              </ProtectedRoute>
-            }
-          />
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
 
-          <Route
-            path="/messages"
-            element={
-              <ProtectedRoute>
-                <WithNav>
-                  <Messages />
-                </WithNav>
-              </ProtectedRoute>
-            }
-          />
+  }, []);
 
-          <Route
-            path="/notifications"
-            element={
-              <ProtectedRoute>
-                <WithNav>
-                  <Notifications />
-                </WithNav>
-              </ProtectedRoute>
-            }
-          />
+  // TEST SUPABASE
+  useEffect(() => {
 
-          <Route
-            path="/leaderboard"
-            element={
-              <ProtectedRoute>
-                <WithNav>
-                  <Leaderboard />
-                </WithNav>
-              </ProtectedRoute>
-            }
-          />
+    const test = async () => {
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <WithNav>
-                  <Admin />
-                </WithNav>
-              </ProtectedRoute>
-            }
-          />
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*");
 
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+      console.log("DATA:", data);
+      console.log("ERROR:", error);
+    };
 
-          <Route
-            path="/edit-profile"
-            element={
-              <ProtectedRoute>
-                <EditProfile />
-              </ProtectedRoute>
-            }
-          />
+    test();
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+  }, []);
 
-        <Chatbot />
+  return (
 
-      </AuthProvider>
-    </BrowserRouter>
-  </TooltipProvider>
-</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
 
+      <TooltipProvider>
 
-);
+        <Toaster />
+        <Sonner />
+
+        <BrowserRouter>
+
+          <AuthProvider>
+
+            <div id="sparkle-container"></div>
+
+            <Routes>
+
+              <Route path="/" element={<Index />} />
+
+              <Route path="/login" element={<Login />} />
+
+              <Route path="/signup" element={<Signup />} />
+
+              <Route path="/ai" element={<AIPage />} />
+
+              <Route
+                path="/forgot-password"
+                element={<ForgotPassword />}
+              />
+
+              <Route
+                path="/reset-password"
+                element={<ResetPassword />}
+              />
+
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <WithNav>
+                      <Dashboard />
+                    </WithNav>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/discover"
+                element={
+                  <ProtectedRoute>
+                    <WithNav>
+                      <Discover />
+                    </WithNav>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/sessions"
+                element={
+                  <ProtectedRoute>
+                    <WithNav>
+                      <Sessions />
+                    </WithNav>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* UPDATED MESSAGES ROUTE */}
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute>
+                    <WithNav>
+                      <Messages user={user} />
+                    </WithNav>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <WithNav>
+                      <Notifications />
+                    </WithNav>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/leaderboard"
+                element={
+                  <ProtectedRoute>
+                    <WithNav>
+                      <Leaderboard />
+                    </WithNav>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <WithNav>
+                      <Admin />
+                    </WithNav>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/edit-profile"
+                element={
+                  <ProtectedRoute>
+                    <EditProfile />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route path="*" element={<NotFound />} />
+
+            </Routes>
+
+            <Chatbot />
+
+          </AuthProvider>
+
+          <FloatingAI />
+
+        </BrowserRouter>
+
+      </TooltipProvider>
+
+    </QueryClientProvider>
+  );
 }
 
 export default App;
