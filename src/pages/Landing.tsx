@@ -245,7 +245,7 @@ export default function Landing() {
     variant="outline"
     className="rounded-2xl border border-cyan-400/40 bg-white/5 px-8 py-7 text-base font-semibold text-cyan-300 backdrop-blur-xl transition-all duration-300 hover:bg-cyan-400/10 hover:scale-105"
   >
-    Become a Mentor
+    Become a Mentor.
   </Button>
 </Link>
 </div>
