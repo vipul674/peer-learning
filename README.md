@@ -257,18 +257,6 @@ git push origin feature-name
 
 # 💖 Contributors
 
-Thanks to all the amazing contributors who helped improve this project ❤️
-
-<p align="center">
-  <a href="https://github.com/durdana3105/peer-learning/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=durdana3105/peer-learning" />
-  </a>
-</p>
-
----
-
-# 💖 Contributors
-
 Thanks to all the amazing people who contribute to **Peer Learning** 🚀
 
 <p align="center">
