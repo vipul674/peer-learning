@@ -105,8 +105,14 @@ export default function Landing() {
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) {
+    if (!el || loading) {
       return;
+    }
+
+    // clear any existing interval before creating a new one
+    if (testimonialAutoScrollRef.current) {
+      clearInterval(testimonialAutoScrollRef.current);
+      testimonialAutoScrollRef.current = null;
     }
 
     testimonialAutoScrollRef.current = window.setInterval(() => {
@@ -120,7 +126,7 @@ export default function Landing() {
         return;
       }
 
-      el.scrollLeft += 2;
+      el.scrollLeft += 3; // slightly faster
       if (el.scrollLeft >= loopPoint) {
         el.scrollLeft -= loopPoint;
       }
@@ -132,7 +138,7 @@ export default function Landing() {
         testimonialAutoScrollRef.current = null;
       }
     };
-  }, []);
+  }, [loading]);
 
   useEffect(() => {
   const handleScroll = () => {
