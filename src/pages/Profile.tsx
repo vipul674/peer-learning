@@ -59,10 +59,10 @@ const EditProfile = () => {
           skills: profileData.skills?.join(", ") || "",
           avatar_url: profileData.avatar_url || avatars[0],
           streak: profileData.streak || 0,
-          xp: profileData.xp || 0,
-          level: calculateLevel(profileData.xp || 0),
-          badge: getBadgeByXP(profileData.xp || 0),
-          achievements: getAchievements(profileData.xp || 0),
+          xp: profileData.points || 0,
+          level: calculateLevel(profileData.points || 0),
+          badge: getBadgeByXP(profileData.points || 0),
+          achievements: getAchievements(profileData.points || 0),
         });
       }
     };
