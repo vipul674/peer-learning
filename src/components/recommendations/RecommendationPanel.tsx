@@ -43,7 +43,7 @@ type RecommendationPanelProps = {
     description: string | null;
     scheduled_at: string | null;
     status: string | null;
-    teacher_id: string | null;
+    mentor_id: string | null;
     student_id: string | null;
   }>;
 };
