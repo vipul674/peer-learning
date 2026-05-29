@@ -238,7 +238,9 @@ const Chat = () => {
       .subscribe();
 
     const typingChannel = supabase
-      .channel(`chat-typing-${[currentUser.id, selectedUser.id].sort().join("-")}`)
+      .channel(`chat-typing-${[currentUser.id, selectedUser.id].sort().join("-")}`, {
+        config: { private: true },
+      })
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         if (payload.senderId !== selectedUser.id) return;
 
@@ -270,7 +272,9 @@ const Chat = () => {
     if (!currentUser?.id || !selectedUser?.id) return;
 
     await supabase
-      .channel(`chat-typing-${[currentUser.id, selectedUser.id].sort().join("-")}`)
+      .channel(`chat-typing-${[currentUser.id, selectedUser.id].sort().join("-")}`, {
+        config: { private: true },
+      })
       .send({
         type: "broadcast",
         event: "typing",
