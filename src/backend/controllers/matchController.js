@@ -1,63 +1,114 @@
 import User from "../models/User.js";
-
+import { getRelatedSkills } from "../utils/skillGraph.js";
 // 📚 Calculate compatibility score
 const calculateCompatibilityScore = (currentUser, otherUser) => {
   let score = 0;
 
-  // Skills Match
+  const reasons = [];
+
+  // ✅ Exact Skill Matches
   const commonSkills = currentUser.skills.filter((skill) =>
     otherUser.skills.includes(skill)
   );
 
-  score += commonSkills.length * 10;
+  if (commonSkills.length > 0) {
+    score += commonSkills.length * 10;
 
-  // Interests Match
+    reasons.push(
+      `You both share ${commonSkills.slice(0, 2).join(", ")} skills.`
+    );
+  }
+
+  // ✅ Related Skill Matches
+  let relatedSkillMatches = [];
+
+  currentUser.skills.forEach((skill) => {
+    const relatedSkills = getRelatedSkills(skill);
+
+    relatedSkills.forEach((relatedSkill) => {
+      if (
+        otherUser.skills.includes(relatedSkill) &&
+        !commonSkills.includes(relatedSkill)
+      ) {
+        relatedSkillMatches.push(relatedSkill);
+      }
+    });
+  });
+
+  relatedSkillMatches = [...new Set(relatedSkillMatches)];
+
+  if (relatedSkillMatches.length > 0) {
+    score += relatedSkillMatches.length * 6;
+
+    reasons.push(
+      `Related technologies include ${relatedSkillMatches
+        .slice(0, 2)
+        .join(", ")}.`
+    );
+  }
+
+  // ✅ Interests Match
   const commonInterests = currentUser.interests.filter((interest) =>
     otherUser.interests.includes(interest)
   );
 
-  score += commonInterests.length * 10;
+  if (commonInterests.length > 0) {
+    score += commonInterests.length * 3;
 
-  // Learning Goals Match
+    reasons.push(
+      `Shared interests in ${commonInterests.slice(0, 2).join(", ")}.`
+    );
+  }
+
+  // ✅ Learning Goals Match
   const commonGoals = currentUser.learningGoals.filter((goal) =>
     otherUser.learningGoals.includes(goal)
   );
 
-  score += commonGoals.length * 15;
+  if (commonGoals.length > 0) {
+    score += commonGoals.length * 5;
 
-  // Learning Style Match
+    reasons.push(
+      `You have similar learning goals.`
+    );
+  }
+
+  // ✅ Learning Style Match
   if (
     currentUser.learningStyle &&
     currentUser.learningStyle === otherUser.learningStyle
   ) {
-    score += 15;
+    score += 5;
   }
 
-  // Language Match
+  // ✅ Language Match
   if (
     currentUser.preferredLanguage &&
     currentUser.preferredLanguage === otherUser.preferredLanguage
   ) {
-    score += 10;
+    score += 3;
   }
 
-  // Availability Match
+  // ✅ Availability Match
   if (
     currentUser.availability &&
     currentUser.availability === otherUser.availability
   ) {
-    score += 10;
+    score += 3;
   }
 
-  // Timezone Match
+  // ✅ Timezone Match
   if (
     currentUser.timezone &&
     currentUser.timezone === otherUser.timezone
   ) {
-    score += 10;
+    score += 3;
   }
 
-  return Math.min(score, 100);
+  return {
+    compatibilityScore: Math.min(score, 100),
+    reasons,
+  };
 };
 
 const PAGE_SIZE = 20;
@@ -101,18 +152,25 @@ export const getRecommendedPartners = async (req, res) => {
 
     // Score all users in memory, then paginate the sorted result so the page
     // boundary is stable across requests.
-    const scored = users.map((user) => ({
-      _id: user._id,
-      name: user.name,
-      skills: user.skills,
-      interests: user.interests,
-      learningGoals: user.learningGoals,
-      availability: user.availability,
-      learningStyle: user.learningStyle,
-      preferredLanguage: user.preferredLanguage,
-      timezone: user.timezone,
-      compatibilityScore: calculateCompatibilityScore(currentUser, user),
-    }));
+    const scored = users.map((user) => {
+  const result = calculateCompatibilityScore(currentUser, user);
+
+  return {
+    _id: user._id,
+    name: user.name,
+    skills: user.skills,
+    interests: user.interests,
+    learningGoals: user.learningGoals,
+    availability: user.availability,
+    learningStyle: user.learningStyle,
+    preferredLanguage: user.preferredLanguage,
+    timezone: user.timezone,
+    compatibilityScore: result.compatibilityScore,
+    reason:
+      result.reasons[0] ||
+      "You have similar learning interests and compatible skills.",
+  };
+});
 
     scored.sort((a, b) => b.compatibilityScore - a.compatibilityScore);
 
