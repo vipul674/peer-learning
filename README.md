@@ -47,6 +47,7 @@ A modern peer-to-peer learning platform where students can connect, collaborate,
 - [🔐 Authentication](#%F0%9F%94%90-authentication-1)
 - [🚀 Deployment](#%F0%9F%9A%80-deployment)
 - [📂 Project Structure](#%F0%9F%93%82-project-structure)
+    + [📝 Where to add new features?](#%F0%9F%93%9D-where-to-add-new-features)
 - [⚙️ Installation & Setup](#%E2%9A%99%EF%B8%8F-installation--setup)
   * [1️⃣ Clone the Repository](#1%EF%B8%8F%E2%83%A3-clone-the-repository)
   * [2️⃣ Navigate to Project Directory](#2%EF%B8%8F%E2%83%A3-navigate-to-project-directory)
@@ -183,22 +184,33 @@ The **Peer Learning Platform** solves this challenge by enabling students to con
 ```bash
 peer-learning-platform/
 │
-├── public/
+├── public/               # Static assets (images, icons, etc.)
 │
-├── src/
-│   ├── components/
-│   ├── pages/
-│   ├── hooks/
-│   ├── integrations/
-│   ├── services/
-│   ├── utils/
-│   └── App.tsx
+├── src/                  # Main application source code
+│   ├── components/       # Reusable UI components (buttons, cards, forms)
+│   ├── pages/            # Application routes and views (Home, Profile, Chat)
+│   ├── hooks/            # Custom React hooks for state and side effects
+│   ├── integrations/     # Third-party integrations (Supabase, external APIs)
+│   ├── services/         # API calls and business logic
+│   ├── utils/            # Helper functions and utilities
+│   └── App.tsx           # Main application entry point and routing
 │
-├── package.json
-├── tailwind.config.js
-├── tsconfig.json
-└── README.md
+├── backend/              # Custom Node.js Express server
+│   ├── controllers/      # Request handlers (e.g., aiController)
+│   ├── routers/          # API route definitions
+│   └── server.js         # Backend entry point
+│
+├── package.json          # Project dependencies and npm scripts
+├── tailwind.config.js    # Tailwind CSS configuration
+├── tsconfig.json         # TypeScript compiler configuration
+└── README.md             # Project documentation
 ```
+
+### 📝 Where to add new features?
+- **New UI Element**: Add a reusable component in `src/components/`.
+- **New Page/Route**: Create a new view in `src/pages/` and add it to the router in `App.tsx`.
+- **New Database Query**: Add the Supabase logic inside `src/integrations/supabase/` or `src/services/`.
+- **New Backend API**: Define the route in `backend/routers/` and handle logic in `backend/controllers/`.
 
 ---
 
