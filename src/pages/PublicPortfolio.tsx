@@ -64,6 +64,16 @@ const parseGithubUsername = (url: string) => {
 
 const normalizeArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
 
+const sanitizeUrl = (url: string | null | undefined): string => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith("javascript:") || lower.startsWith("data:") || lower.startsWith("vbscript:")) {
+    return "";
+  }
+  return trimmed;
+};
+
 const PublicPortfolio = () => {
   const { slug } = useParams();
   const [portfolio, setPortfolio] = useState<PortfolioRow | null>(null);
@@ -143,13 +153,13 @@ console.log("Portfolio error:", portfolioError);
 
       setPortfolio({
         headline: portfolioData.headline || "",
-        github_url: portfolioData.github_url || "",
-        linkedin_url: portfolioData.linkedin_url || "",
+        github_url: sanitizeUrl(portfolioData.github_url),
+        linkedin_url: sanitizeUrl(portfolioData.linkedin_url),
         skills: portfolioData.skills || [],
         achievements: normalizeArray<Achievement>(
           portfolioData.achievements
         ),
-        projects: normalizeArray<Project>(portfolioData.projects),
+        projects: normalizeArray<Project>(portfolioData.projects).map(p => ({ ...p, url: sanitizeUrl(p.url) })),
         learning_progress: {
           focus:
             typeof progress?.focus === "string"
