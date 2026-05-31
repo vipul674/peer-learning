@@ -23,6 +23,25 @@ serve(async (req) => {
     });
   }
 
+  const authHeader = req.headers.get("Authorization");
+  const webhookSecret = Deno.env.get("WEBHOOK_SECRET");
+  let isAuthorized = false;
+
+  if (webhookSecret && authHeader === `Bearer ${webhookSecret}`) {
+    isAuthorized = true;
+  } else if (authHeader) {
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || serviceRoleKey);
+    const { data: { user } } = await supabaseAuth.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (user) isAuthorized = true;
+  }
+
+  if (!isAuthorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const { user_id, title, body, action_url } = await req.json();
 
   if (!user_id || !title || !body) {
