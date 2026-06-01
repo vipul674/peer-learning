@@ -20,13 +20,15 @@ export const rateLimiter = (req, res, next) => {
   const userId = req.user?.id || req.ip;
   const now = Date.now();
 
-  if (requestCounts.size >= MAX_ENTRIES) {
-    evictStaleEntries();
-  }
-
-  const entry = requestCounts.get(userId);
+  let entry = requestCounts.get(userId);
 
   if (!entry || now - entry.windowStart >= WINDOW_MS) {
+    if (!entry && requestCounts.size >= MAX_ENTRIES) {
+      const oldestKey = requestCounts.keys().next().value;
+      if (oldestKey !== undefined) {
+        requestCounts.delete(oldestKey);
+      }
+    }
     requestCounts.set(userId, { count: 1, windowStart: now });
     return next();
   }
