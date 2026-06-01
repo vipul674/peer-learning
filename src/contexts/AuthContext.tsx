@@ -73,7 +73,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
 
         if (session?.user) {
           await ensureProfileExists(session.user);
@@ -108,32 +107,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           setSession(session);
           setUser(session?.user ?? null);
-          setLoading(false);
-
-          if (session?.user && _event === "SIGNED_IN") {
-            setTimeout(() => {
-              ensureProfileExists(session.user);
-            }, 0);
-          }
 
           if (session?.user) {
-            setTimeout(async () => {
-              try {
-                const { data: profile } = await supabase
-                  .from("profiles")
-                  .select("is_mentor, is_learner")
-                  .eq("id", session.user.id)
-                  .single();
+            if (_event === "SIGNED_IN") {
+              await ensureProfileExists(session.user);
+            }
 
-                if (mounted) {
-                  setNeedsOnboarding(
-                    profile?.is_mentor === false && profile?.is_learner === false
-                  );
-                }
-              } catch (err) {
-                console.error("Failed to check onboarding profile:", err);
+            try {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("is_mentor, is_learner")
+                .eq("id", session.user.id)
+                .single();
+
+              if (mounted) {
+                setNeedsOnboarding(
+                  profile?.is_mentor === false && profile?.is_learner === false
+                );
               }
-            }, 0);
+            } catch (err) {
+              console.error("Failed to check onboarding profile:", err);
+            }
           } else {
             setNeedsOnboarding(false);
           }
