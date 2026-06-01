@@ -456,10 +456,11 @@ const Messages = ({ user }: MessagesProps) => {
         .from("messages")
         .select("id,sender_id,receiver_id,content,text,message,created_at,read_at")
         .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
       if (!error && data) {
-        setMessages(data as MessageRow[]);
+        setMessages((data as MessageRow[]).reverse());
       } else if (error) {
         console.error("Failed to load messages:", error.message);
       }
