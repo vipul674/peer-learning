@@ -4,9 +4,15 @@ import type { Database } from "./types";
 
 export const supabaseMisconfigured = !supabaseUrl || !supabaseAnonKey;
 
+if (supabaseMisconfigured) {
+  throw new Error(
+    "Supabase is misconfigured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or their supported aliases) before starting the app."
+  );
+}
+
 export const supabase = createClient<Database>(
-  supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder-key",
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       storage: localStorage,
