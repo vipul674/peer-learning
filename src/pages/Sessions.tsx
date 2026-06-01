@@ -21,6 +21,7 @@ import { CreateSessionDialog } from "@/components/CreateSessionDialog";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { generateICS } from "@/utils/calendar";
 import { useToast } from "@/hooks/use-toast";
+import { API_BASE_URL } from "@/config/api";
 
 const tabs = [
   "Upcoming",
@@ -420,25 +421,22 @@ const [summaryLoading, setSummaryLoading] =
     try {
       setSummaryLoading(true);
 
-      const prompt = `Generate a brief summary and key takeaways for this study session chat history. Return ONLY a valid JSON object with keys 'summary' (string) and 'key_takeaways' (array of strings). Do not include markdown formatting. Chat history: ${JSON.stringify(messages.map((m: any) => m.username + ": " + m.message))}`;
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: { prompt }
+      const res = await fetch(`${API_BASE_URL}/api/ai/generate-summary`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({ messages })
       });
 
-      if (error) throw error;
-      
-      let parsedData;
-      try {
-        const rawContent = data?.choices?.[0]?.message?.content || "{}";
-        parsedData = JSON.parse(rawContent.replace(/```json/g, "").replace(/```/g, "").trim());
-      } catch (err) {
-        console.error("Failed to parse summary", err);
-        parsedData = {
-          summary: "Session summary generated, but failed to parse response.",
-          key_takeaways: []
-        };
+      if (!res.ok) {
+        throw new Error("Failed to generate summary");
       }
+
+      const parsedData = await res.json();
 
       setSessionSummary(parsedData);
 
