@@ -420,29 +420,23 @@ const Messages = ({ user }: MessagesProps) => {
           schema: "public",
           table: "profiles",
         },
-        () => {
-          void supabase
-            .from("profiles")
-            .select("*")
-            .neq("id", currentUserId)
-            .order("name", { ascending: true })
-            .limit(100)
-            .then(({ data: profileData }) => {
-              void supabase
-                .from("users")
-                .select("*")
-                .neq("id", currentUserId)
-                .order("name", { ascending: true })
-                .limit(100)
-                .then(({ data: userData }) => {
-                  setProfiles(
-                    mergeProfiles(
-                      (profileData ?? []).map((row) => row as ProfileSummary),
-                      (userData ?? []) as UserRow[]
-                    )
-                  );
-                });
+        (payload) => {
+          if (payload.new && payload.new.id && payload.new.id !== currentUserId) {
+            setProfiles((prev) => {
+              const updated = normalizeProfile(payload.new as ProfileRow);
+              const index = prev.findIndex((p) => p.id === updated.id);
+              
+              if (index === -1) {
+                const newProfiles = [...prev, updated];
+                newProfiles.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+                return newProfiles;
+              }
+              
+              const newProfiles = [...prev];
+              newProfiles[index] = { ...newProfiles[index], ...updated };
+              return newProfiles;
             });
+          }
         }
       )
       .subscribe();
@@ -462,10 +456,11 @@ const Messages = ({ user }: MessagesProps) => {
         .from("messages")
         .select("id,sender_id,receiver_id,content,text,message,created_at,read_at")
         .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
       if (!error && data) {
-        setMessages(data as MessageRow[]);
+        setMessages((data as MessageRow[]).reverse());
       } else if (error) {
         console.error("Failed to load messages:", error.message);
       }
