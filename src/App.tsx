@@ -55,6 +55,9 @@ const StudyRooms = React.lazy(() => import("./components/StudyRooms"));
 const Room = React.lazy(() => import("./components/Room"));
 const Contact = React.lazy(() => import("./pages/Contact"));
 const PrivacyPolicy = React.lazy(() => import("./pages/privacy"));
+const PeerReviewDashboard = React.lazy(() => import("./pages/PeerReviewDashboard"));
+const SubmitForReview = React.lazy(() => import("./pages/SubmitForReview"));
+const ReviewSubmission = React.lazy(() => import("./pages/ReviewSubmission"));
 
 const queryClient = new QueryClient();
 
@@ -257,6 +260,37 @@ function AppContent() {
                   <Admin />
                 </WithNav>
               </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/peer-review"
+            element={
+              <ProtectedRoute>
+                <WithNav>
+                  <PeerReviewDashboard />
+                </WithNav>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/peer-review/new"
+            element={
+              <ProtectedRoute>
+                <WithNav>
+                  <SubmitForReview />
+                </WithNav>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/peer-review/:id"
+            element={
+              <ProtectedRoute>
+                <WithNav>
+                  <ReviewSubmission />
+                </WithNav>
+              </ProtectedRoute>
             }
           />
 

@@ -31,6 +31,7 @@ import {
   Moon,
   Users,
   BriefcaseBusiness,
+  FileCheck,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -116,6 +117,11 @@ const Navbar = () => {
           to: "/portfolio",
           label: "Portfolio",
           icon: BriefcaseBusiness,
+        },
+        {
+          to: "/peer-review",
+          label: "Peer Review",
+          icon: FileCheck,
         },
         ...(isAdmin
           ? [
