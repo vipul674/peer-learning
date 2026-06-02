@@ -42,15 +42,13 @@ const FloatingAI = () => {
 
     try {
       // The /api/chat endpoint is protected by requireAuth middleware.
-      // Retrieve the session token from localStorage to authenticate.
-      const token = localStorage.getItem("token");
-
+      // Authentication is now handled securely via HttpOnly cookies.
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        credentials: "include",
         body: JSON.stringify({
           messages: [{ role: "user", content: prompt }],
           max_tokens: 150,

@@ -54,14 +54,18 @@ export const requireAuth = async (req, res, next) => {
     return;
   }
 
-  const authHeader = req.headers.authorization;
+  let token = null;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (req.cookies && req.cookies.access_token) {
+    token = req.cookies.access_token;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    token = req.headers.authorization.slice(7);
+  }
+
+  if (!token) {
     next(new HttpError(401, "Authentication required"));
     return;
   }
-
-  const token = authHeader.slice(7);
   const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 
   if (jwtSecret) {

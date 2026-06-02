@@ -9,13 +9,10 @@ const LearnerDashboard = () => {
   const { data: partners = [], isLoading: loadingPartners } = useQuery({
     queryKey: ["recommended-partners"],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${API_BASE_URL}/api/match/recommendations`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include",
         }
       );
       if (!response.ok) throw new Error("Failed to fetch partners");
