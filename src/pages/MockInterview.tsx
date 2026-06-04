@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { API_BASE_URL } from "@/config/api";
 import { toast } from "sonner";
 import { Loader2, Send, Bot, User, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
@@ -56,13 +57,14 @@ const MockInterview = () => {
   const sendMessage = async (currentMessages: Message[]) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(`${API_BASE_URL}/api/ai/mock-interview/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
+        credentials: "include",
         body: JSON.stringify({ messages: currentMessages, role }),
       });
 
@@ -96,13 +98,14 @@ const MockInterview = () => {
     setIsFinished(true);
     setGeneratingReport(true);
     try {
-      const token = localStorage.getItem("token");
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(`${API_BASE_URL}/api/ai/mock-interview/report`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
+        credentials: "include",
         body: JSON.stringify({ messages }),
       });
 

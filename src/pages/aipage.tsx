@@ -44,6 +44,7 @@ const AIPage = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token}`,
         },
+        credentials:"include",
         body: JSON.stringify({
           question: prompt,
         }),
