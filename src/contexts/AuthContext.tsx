@@ -1,19 +1,21 @@
 import { createContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { API_BASE_URL } from "@/config/api";
 
 const syncSessionCookie = async (session: Session | null) => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
     if (session?.access_token) {
       await fetch(`${API_BASE_URL}/api/auth/set-cookie`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ access_token: session.access_token }),
       });
     } else {
       await fetch(`${API_BASE_URL}/api/auth/clear-cookie`, {
         method: "POST",
+        credentials: "include",
       });
     }
   } catch (err) {

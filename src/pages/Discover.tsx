@@ -183,7 +183,8 @@ const Discover = () => {
           const res = await fetch(`${API_BASE_URL}/api/match/supabase-discover?${searchParams.toString()}`, {
             headers: {
               Authorization: `Bearer ${session.access_token}`
-            }
+            },
+            credentials:"include"
           });
           const apiData = await res.json();
           if (apiData.success) {

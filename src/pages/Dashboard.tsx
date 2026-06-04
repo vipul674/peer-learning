@@ -109,7 +109,8 @@ const Dashboard = () => {
       const res = await fetch(`${API_BASE_URL}/api/match/supabase-discover?limit=3`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`
-        }
+        },
+        credentials:"include"
       });
       
       const data = await res.json();

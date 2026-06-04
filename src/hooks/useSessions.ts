@@ -260,6 +260,7 @@ export function useSessions(user: any) {
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         credentials: "include",
+        credentials:"include",
         body: JSON.stringify({ messages }),
       });
 
