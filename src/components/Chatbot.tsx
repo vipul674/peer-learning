@@ -118,10 +118,9 @@ export default function Chatbot() {
 
       await supabase.from("chat_messages").insert([botMsg]);
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "Something went wrong. Please try again." },
-      ]);
+      const errorMsg = { role: "assistant", text: "Something went wrong. Please try again.", user_id: userId };
+      setMessages((prev) => [...prev, errorMsg]);
+      await supabase.from("chat_messages").insert([errorMsg]);
     }
 
     setLoading(false);
