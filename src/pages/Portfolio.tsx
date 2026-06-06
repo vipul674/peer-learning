@@ -132,21 +132,18 @@ const Portfolio = () => {
       }, 10_000);
 
       try {
-        console.log("Starting parallel load queries for profile and portfolio (user ID:", user.id, ")");
-        // Run both queries in parallel instead of sequentially
+          // Run both queries in parallel instead of sequentially
         const [profileResult, portfolioResult] = await Promise.all([
           supabase
             .from("profiles")
             .select("name, skills")
             .eq("id", user.id)
-            .maybeSingle()
-            .then(res => { console.log("Profile query finished:", res); return res; }),
+            .maybeSingle(),
           supabase
             .from("portfolio_profiles")
             .select("*")
             .eq("profile_id", user.id)
-            .maybeSingle()
-            .then(res => { console.log("Portfolio query finished:", res); return res; }),
+            .maybeSingle(),
         ]);
 
         clearTimeout(timeout);
@@ -308,7 +305,6 @@ const Portfolio = () => {
     }, 10_000);
 
     try {
-      console.log("Starting portfolio save with payload:", payload);
       const { error } = await supabase
         .from("portfolio_profiles")
         .upsert(payload, { onConflict: "profile_id" });
@@ -329,7 +325,6 @@ const Portfolio = () => {
         return;
       }
 
-      console.log("Portfolio saved successfully in database!");
       setForm((current) => ({ ...current, slug }));
       toast({
         title: "Portfolio saved",

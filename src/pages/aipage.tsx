@@ -65,7 +65,7 @@ const AIPage = () => {
         },
       ]);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       setMessages((prev: any) => [
         ...prev,
         {
