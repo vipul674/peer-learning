@@ -71,9 +71,7 @@ const Login = () => {
   };
 
   const handleGoogleLogin = async () => {
-    console.log("handleGoogleLogin clicked");
     if (supabaseMisconfigured) {
-      console.log("Supabase is misconfigured, aborting OAuth");
       toast({
         title: "Not configured",
         description:
@@ -83,7 +81,6 @@ const Login = () => {
       return;
     }
 
-    console.log("Initiating signInWithOAuth for Google...");
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -91,8 +88,6 @@ const Login = () => {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-
-      console.log("signInWithOAuth response:", { data, error });
 
       if (error) {
         console.error("signInWithOAuth error:", error);
