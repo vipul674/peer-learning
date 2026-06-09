@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, BookOpen, ArrowRight } from "lucide-react";
+import googleIcon from "@/assets/google-icon.svg";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -314,7 +315,7 @@ const Login = () => {
               onClick={handleGoogleLogin}
               className="h-12 w-full glass-button rounded-xl text-slate-200 hover:text-white border-white/10"
             >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="google" className="mr-2 h-5 w-5" />
+              <img src={googleIcon} alt="google" className="mr-2 h-5 w-5" />
               Continue with Google
             </Button>
           </form>
