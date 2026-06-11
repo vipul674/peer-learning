@@ -56,15 +56,27 @@ export const dispatchPushNotifications = async (req, res, next) => {
     webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
     const supabase = getSupabaseClient();
 
-    const { data: notifications, error } = await supabase
+    // --- Atomic claim --------------------------------------------------
+    // A single UPDATE … RETURNING claims the batch before any push is
+    // dispatched. Postgres guarantees that only one concurrent caller
+    // wins each row; the other sees push_claimed_at already set and its
+    // SELECT returns an empty set.  This replaces the racy
+    // SELECT … WHERE push_sent_at IS NULL pattern.
+    // -------------------------------------------------------------------
+    const claimedAt = new Date().toISOString();
+    const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    const { data: notifications, error: claimError } = await supabase
       .from("notifications")
-      .select("id,user_id,title,body,action_url")
+      .update({ push_claimed_at: claimedAt })
       .is("push_sent_at", null)
+      .or(`push_claimed_at.is.null,push_claimed_at.lt.${staleThreshold}`)
+      .select("id,user_id,title,body,action_url")
       .order("created_at", { ascending: true })
       .limit(100);
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
+    if (claimError) {
+      return res.status(500).json({ error: claimError.message });
     }
 
     if (!notifications || notifications.length === 0) {
@@ -73,36 +85,30 @@ export const dispatchPushNotifications = async (req, res, next) => {
 
     const userIds = [...new Set(notifications.map((n) => n.user_id))];
 
-    // Fetch subscriptions for all notification recipients in a single query.
     const { data: allSubscriptions, error: subscriptionsError } = await supabase
       .from("push_subscriptions")
       .select("user_id,endpoint,p256dh,auth")
       .in("user_id", userIds);
 
-    if(subscriptionsError) {
+    if (subscriptionsError) {
       return res.status(500).json({ error: subscriptionsError.message });
     }
 
-    // Group subscriptions by user_id for constant-time lookup during dispatch.
     const subscriptionsByUser = new Map();
-
     for (const subscription of allSubscriptions || []) {
-
-      if(!subscriptionsByUser.has(subscription.user_id)) {
+      if (!subscriptionsByUser.has(subscription.user_id)) {
         subscriptionsByUser.set(subscription.user_id, []);
       }
-
       subscriptionsByUser.get(subscription.user_id).push(subscription);
     }
 
     let sent = 0;
 
     for (const notification of notifications) {
-      
       const subscriptions = subscriptionsByUser.get(notification.user_id) || [];
 
       const pushResults = await Promise.allSettled(
-        (subscriptions || []).map((subscription) =>
+        subscriptions.map((subscription) =>
           webpush.sendNotification(
             {
               endpoint: subscription.endpoint,
@@ -120,12 +126,18 @@ export const dispatchPushNotifications = async (req, res, next) => {
         )
       );
 
-      sent += pushResults.filter((result) => result.status === "fulfilled").length;
+      const anySucceeded = pushResults.some((r) => r.status === "fulfilled");
+      sent += pushResults.filter((r) => r.status === "fulfilled").length;
 
-      await supabase
-        .from("notifications")
-        .update({ push_sent_at: new Date().toISOString() })
-        .eq("id", notification.id);
+      // Only stamp push_sent_at when at least one push succeeded so a
+      // fully-failed notification remains retryable — but push_claimed_at
+      // already prevents concurrent re-delivery regardless.
+      if (anySucceeded) {
+        await supabase
+          .from("notifications")
+          .update({ push_sent_at: new Date().toISOString() })
+          .eq("id", notification.id);
+      }
     }
 
     res.json({ sent, processed: notifications.length });
