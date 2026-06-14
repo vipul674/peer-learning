@@ -233,10 +233,15 @@ const Dashboard = () => {
     const fetchSessions = async () => {
       // SECURITY/PERF: Limit fetch to top 4 to prevent downloading 10,000 global sessions
       // which would cause massive browser OOM crashes and render thrashing.
+      if (!user?.id) {
+        setUpcomingSessions([]);
+        return;
+      }
       const { data, error } = await supabase
         .from("sessions")
         .select("*")
         .eq("status", "upcoming")
+        .or(`mentor_id.eq.${user.id},student_id.eq.${user.id}`)
         .limit(4);
 
       if (error || !data) {
@@ -248,7 +253,7 @@ const Dashboard = () => {
     };
 
     fetchSessions();
-  }, []);
+  }, [user?.id]);
 
   const [globalRank, setGlobalRank] = useState<number>(0);
 
