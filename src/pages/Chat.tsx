@@ -186,7 +186,7 @@ const Chat = () => {
           .order("name", { ascending: true })
           .limit(100),
         supabase
-          .from("users")
+          .from("profiles")
           .select("*")
           .neq("id", currentUser.id)
           .order("name", { ascending: true })
