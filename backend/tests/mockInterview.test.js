@@ -197,8 +197,13 @@ describe("conductMockInterview — role escaping in system prompt", () => {
     const payload = JSON.parse(init.body);
     const systemMsg = payload.messages.find((m) => m.role === "system");
 
-    // The raw backtick and newline must not appear in the system prompt
-    expect(systemMsg.content).not.toContain("`");
-    expect(systemMsg.content).not.toContain("\n");
+    // The raw backtick and newline must not appear in the sanitised role
+    // Extract only the role segment from the system prompt to avoid
+    // false failures from the template's own intentional newlines.
+    const roleMatch = systemMsg.content.match(/You are acting as a strict but fair (.+?) conducting a mock interview/);
+    expect(roleMatch).not.toBeNull();
+    const sanitisedRole = roleMatch[1];
+    expect(sanitisedRole).not.toContain("`");
+    expect(sanitisedRole).not.toContain("\n");
   });
 });

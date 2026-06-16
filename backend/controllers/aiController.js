@@ -21,7 +21,7 @@ const MAX_TOTAL_CONTENT_LENGTH = 20000;
 const escapeForPrompt = (str) =>
   str
     .replace(/\\/g, "\\\\")
-    .replace(/`/g, "\\`")
+    .replace(/`/g, "")
     .replace(/\$/g, "\\$")
     .replace(/"/g, '\\"')
     .replace(/\n/g, " ")
