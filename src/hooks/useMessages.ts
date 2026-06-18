@@ -273,8 +273,8 @@ export function useMessages(currentUserId?: string | null) {
         }
 
         if (data) {
-          // @ts-expect-error TODO: refine typing
-          setMessages((data as MessageRow[]).reverse());
+          const typedMessages = data as unknown as MessageRow[];
+          setMessages(typedMessages.reverse());
         }
       } catch (err: any) {
         logError(err, { context: "useMessages.loadMessages" });
